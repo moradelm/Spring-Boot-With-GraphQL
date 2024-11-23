@@ -41,7 +41,7 @@ public class CompteControllerGraphQL {
         return Map.of(
                 "count",count,
                 "sum",sum,
-                "average",average,
+                "average",average
         );
     }
 
