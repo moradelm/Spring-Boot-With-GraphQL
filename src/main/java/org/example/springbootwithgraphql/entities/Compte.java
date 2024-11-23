@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.Date;
+import java.util.List;
 
 @Entity
 @Data
@@ -21,5 +22,16 @@ public class Compte {
     private Date dateCreation;
 
     @Enumerated(EnumType.STRING)
-    private TypeCompte typeCompte;
+    private TypeCompte type;
+
+    @OneToMany(mappedBy = "compte")
+    private List<Transaction> transactions;
+
+    public Compte(Long id, double solde, Date dateCreation, TypeCompte type) {
+        super();
+        this.id = id;
+        this.solde = solde;
+        this.dateCreation = dateCreation;
+        this.type = type;
+    }
 }

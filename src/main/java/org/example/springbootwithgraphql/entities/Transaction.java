@@ -6,25 +6,22 @@ import lombok.*;
 import java.util.Date;
 
 @Entity
-@Getter
-@Setter
-@AllArgsConstructor
+@Data
 @NoArgsConstructor
+@AllArgsConstructor
 public class Transaction {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
     private double montant;
 
     @Temporal(TemporalType.DATE)
-    private Date date;
+    private Date dateTransaction;
 
     @Enumerated(EnumType.STRING)
     private TypeTransaction type;
 
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "compte_id", nullable = false)
+    @ManyToOne
+    @JoinColumn(name = "compte_id")
     private Compte compte;
 }

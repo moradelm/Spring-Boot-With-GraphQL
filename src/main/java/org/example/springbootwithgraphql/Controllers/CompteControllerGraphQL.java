@@ -1,8 +1,13 @@
 package org.example.springbootwithgraphql.Controllers;
 
 import lombok.AllArgsConstructor;
+import org.example.springbootwithgraphql.DTO.TransactionRequest;
 import org.example.springbootwithgraphql.entities.Compte;
+import org.example.springbootwithgraphql.entities.Transaction;
+import org.example.springbootwithgraphql.entities.TypeCompte;
+import org.example.springbootwithgraphql.entities.TypeTransaction;
 import org.example.springbootwithgraphql.repositories.CompteRepository;
+import org.example.springbootwithgraphql.repositories.TransactionRepository;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
@@ -14,18 +19,25 @@ import java.util.Map;
 @Controller
 @AllArgsConstructor
 public class CompteControllerGraphQL {
+
     private CompteRepository compteRepository;
+    private TransactionRepository transactionRepository;
 
     @QueryMapping
-    public List<Compte> AllComptes(){
+    public List<Compte> allComptes(){
         return compteRepository.findAll();
     }
 
     @QueryMapping
     public Compte compteById(@Argument Long id){
-        Compte compte = compteRepository.findById(id).orElse(null);
-        if(compte == null) throw new RuntimeException(String.format("Compte with id %s not found", id));
+        Compte compte =  compteRepository.findById(id).orElse(null);
+        if(compte == null) throw new RuntimeException(String.format("Compte %s not found", id));
         else return compte;
+    }
+
+    @QueryMapping
+    public List<Compte> compteByType(@Argument TypeCompte type){
+        return compteRepository.findByType(type);
     }
 
     @MutationMapping
@@ -33,16 +45,63 @@ public class CompteControllerGraphQL {
         return compteRepository.save(compte);
     }
 
+    @MutationMapping
+    public boolean deleteById(@Argument Long id) {
+        if (!compteRepository.existsById(id)) {
+            return false;
+        }
+        compteRepository.deleteById(id);
+        return !compteRepository.existsById(id);
+    }
+
     @QueryMapping
-    public Map<String,Object> totalSolde(){
+    public Map<String, Object> totalSolde() {
         long count = compteRepository.count();
         double sum = compteRepository.sumSoldes();
-        double average = count > 0 ? sum/count : 0;
+        double average = count > 0 ? sum / count : 0;
+
         return Map.of(
-                "count",count,
-                "sum",sum,
-                "average",average
+                "count", count,
+                "sum", sum,
+                "average", average
         );
     }
 
+    @MutationMapping
+    public Transaction addTransaction(@Argument TransactionRequest transactionRequest){
+        Compte compte = compteRepository.findById(transactionRequest.getCompteId())
+                .orElseThrow(() ->new RuntimeException("Compte not found "));
+        Transaction transaction = new Transaction();
+        transaction.setMontant(transactionRequest.getMontant());
+        transaction.setDateTransaction(transactionRequest.getDateTransaction());
+        transaction.setType(transactionRequest.getType());
+        transaction.setCompte(compte);
+        transactionRepository.save(transaction);
+        return transaction;
+
+    }
+
+    @QueryMapping
+    public List<Transaction> transactionsByCompte(@Argument Long id ){
+        Compte compte = compteRepository.findById(id)
+                .orElseThrow(()->new RuntimeException("Compte not found "));
+        return transactionRepository.findByCompte(compte);
+    }
+
+    @QueryMapping
+    public Map<String, Object> transactionStats() {
+        long count = transactionRepository.count();
+        double sumDepots = transactionRepository.sumByType(TypeTransaction.DEPOT) != null
+                ? transactionRepository.sumByType(TypeTransaction.DEPOT)
+                : 0.0;
+        double sumRetraits = transactionRepository.sumByType(TypeTransaction.RETRAIT) != null
+                ? transactionRepository.sumByType(TypeTransaction.RETRAIT)
+                : 0.0;
+
+        return Map.of(
+                "count", count,
+                "sumDepots", sumDepots,
+                "sumRetraits", sumRetraits
+        );
+    }
 }
